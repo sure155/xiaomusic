@@ -12,8 +12,11 @@ log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 
 # 创建配置
 create_config() {
-    if [ ! -f "xiaomusic.json" ]; then
-        cat > xiaomusic.json <<EOF
+    CONF_DIR="/volume1/music/conf"
+
+    if [ ! -f "$CONF_DIR/xiaomusic.json" ]; then
+        mkdir -p "$CONF_DIR"
+        cat > "$CONF_DIR/xiaomusic.json" <<EOF
 {
   "hostname": "xiaomusic",
   "account": "",
@@ -37,14 +40,25 @@ main() {
     echo ""
 
     create_config
-    mkdir -p music cache js_plugins
+    mkdir -p /volume1/music/{歌曲,cache,conf,js_plugins}
+    log_info "目录结构:"
+    log_info "  音乐目录: /volume1/music/歌曲"
+    log_info "  配置目录: /volume1/music/conf"
+    log_info "  缓存目录: /volume1/music/cache"
+    log_info "  插件目录: /volume1/music/js_plugins"
 
     log_info "启动服务..."
     docker-compose -f docker-compose.optimized.yml up -d
 
     echo ""
     log_info "启动完成！"
-    log_info "访问地址: http://localhost:8090"
+    log_info "访问地址: http://你的IP:58090"
+    log_info ""
+    log_info "目录结构:"
+    log_info "  音乐目录: /volume1/music/歌曲"
+    log_info "  配置目录: /volume1/music/conf"
+    log_info "  缓存目录: /volume1/music/cache"
+    log_info "  插件目录: /volume1/music/js_plugins"
     log_info ""
     log_info "常用命令:"
     log_info "  查看日志: docker-compose -f docker-compose.optimized.yml logs -f"

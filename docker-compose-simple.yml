@@ -7,12 +7,12 @@ services:
     restart: unless-stopped
 
     ports:
-      - "8090:8090"
+      - "58090:8090"
 
     volumes:
-      - ./xiaomusic.json:/app/conf/xiaomusic.json:ro
-      - ./music:/app/music
-      - ./cache:/app/cache
+      - /volume1/music/conf:/app/conf
+      - /volume1/music/歌曲:/app/music
+      - /volume1/music/cache:/app/cache
 
     environment:
       - TZ=Asia/Shanghai

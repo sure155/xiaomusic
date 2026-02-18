@@ -26,14 +26,14 @@ services:
 
     # 端口映射
     ports:
-      - "8090:8090"
+      - "58090:8090"
 
     # 卷映射
     volumes:
-      - ./xiaomusic.json:/app/conf/xiaomusic.json:ro
-      - ./music:/app/music
-      - ./cache:/app/cache
-      - ./js_plugins:/app/conf/js_plugins
+      - /volume1/music/conf:/app/conf
+      - /volume1/music/歌曲:/app/music
+      - /volume1/music/cache:/app/cache
+      - /volume1/music/js_plugins:/app/conf/js_plugins
 
     # 性能优化配置
     deploy:
