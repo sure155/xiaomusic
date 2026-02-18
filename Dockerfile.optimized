@@ -1,0 +1,104 @@
+# 多架构构建，支持 amd64/arm64/armv7
+ARG PYTHON_VERSION=3.12
+
+# ======================= 构建阶段 =======================
+FROM python:${PYTHON_VERSION}-alpine AS builder
+
+# 安装构建依赖
+RUN apk add --no-cache \
+    build-base \
+    nodejs \
+    npm \
+    zlib-dev \
+    jpeg-dev \
+    freetype-dev \
+    libffi-dev \
+    openssl-dev \
+    musl-dev
+
+WORKDIR /app
+
+# 复制依赖文件
+COPY pyproject.toml README.md package.json ./
+
+# 使用 pip 安装依赖（优化版）
+# 添加性能优化库
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir \
+    aiohttp>=3.10.0 \
+    async-timeout>=4.0.0 \
+    fastapi>=0.109.0 \
+    uvicorn[standard]>=0.27.0 \
+    miservice>=1.7.3 \
+    cryptography>=41.0.0 \
+    python-multipart>=0.0.6 \
+    pydantic>=2.5.0 \
+    qrcode>=7.4.2 \
+    tzlocal>=5.2.0 \
+    sentry-sdk>=1.39.0 \
+    ga4mp>=0.2.4 \
+    ffmpeg-python>=0.2.0
+
+# 安装 Node.js 依赖
+RUN npm install --loglevel=verbose
+
+# 复制应用代码（包含优化模块）
+COPY xiaomusic/ ./xiaomusic/
+COPY plugins/ ./plugins/
+COPY holiday/ ./holiday/
+COPY xiaomusic.py .
+COPY install_optimized.sh run.sh ./
+
+# ======================= 运行阶段 =======================
+FROM python:${PYTHON_VERSION}-alpine AS runner
+
+# 安装运行时依赖
+RUN apk add --no-cache \
+    ffmpeg \
+    nodejs \
+    npm \
+    ca-certificates \
+    tzdata
+
+# 时区设置
+ENV TZ=Asia/Shanghai
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+WORKDIR /app
+
+# 从构建阶段复制
+COPY --from=builder /app/.venv ./.venv
+COPY --from=builder /app/node_modules ./node_modules/
+COPY --from=builder /app/xiaomusic/ ./xiaomusic/
+COPY --from=builder /app/plugins/ ./plugins/
+COPY --from=builder /app/holiday/ ./holiday/
+COPY --from=builder /app/xiaomusic.py .
+COPY --from=builder /app/xiaomusic/__init__.py ./
+COPY --from=builder /app/package.json .
+COPY --from=builder /app/run.sh ./
+
+# FFmpeg 软链接
+RUN mkdir -p /app/ffmpeg/bin && \
+    ln -s $(which ffmpeg) /app/ffmpeg/bin/ffmpeg && \
+    ln -s $(which ffprobe) /app/ffmpeg/bin/ffprobe
+
+# 设置环境变量
+ENV PATH=/app/.venv/bin:/usr/local/bin:$PATH \
+    PYTHONUNBUFFERED=1 \
+    PYTHONIOENCODING=utf-8
+
+# 创建数据目录
+RUN mkdir -p /app/conf /app/music /app/cache
+
+# 设置卷
+VOLUME ["/app/conf", "/app/music", "/app/cache"]
+
+# 暴露端口
+EXPOSE 8090
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD python3 -c "import requests; requests.get('http://localhost:8090/')" || exit 1
+
+# 运行
+CMD ["python3", "xiaomusic.py"]

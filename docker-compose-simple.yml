@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  xiaomusic:
+    image: sure155/xiaomusic:latest
+    container_name: xiaomusic
+    restart: unless-stopped
+
+    ports:
+      - "8090:8090"
+
+    volumes:
+      - ./xiaomusic.json:/app/conf/xiaomusic.json:ro
+      - ./music:/app/music
+      - ./cache:/app/cache
+
+    environment:
+      - TZ=Asia/Shanghai
+      - PYTHONUNBUFFERED=1
+
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8090/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
