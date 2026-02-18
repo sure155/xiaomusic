@@ -22,19 +22,13 @@ WORKDIR /app
 COPY pyproject.toml README.md package.json ./
 
 # 使用 pip 安装依赖（优化版）
-# 分层安装以解决依赖顺序问题
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel
-
-# 第一层：安装基础依赖
-RUN pip install --no-cache-dir \
-    aiohttp>=3.10.0 \
-    async-timeout>=4.0.0 \
+# 在同一个 RUN 中按顺序安装所有依赖
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir aiohttp>=3.10.0 async-timeout>=4.0.0 && \
+    pip install --no-cache-dir \
     cryptography>=41.0.0 \
     tzlocal>=5.2.0 \
-    pydantic>=2.5.0
-
-# 第二层：安装需要异步库的依赖
-RUN pip install --no-cache-dir \
+    pydantic>=2.5.0 \
     fastapi>=0.109.0 \
     uvicorn[standard]>=0.27.0 \
     miservice>=1.7.3 \
